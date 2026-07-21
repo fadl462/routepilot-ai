@@ -41,7 +41,10 @@
   const STREETS = ['Lakeview Dr','Marina Way','Cedar Point Rd','Bluewater Ln','Sunset Cove','Harbor Ridge','Pecan Grove','Shoreline Blvd','Cypress Bend','Regatta Row','Hilltop Ter','Windward Ct','Vista Point','Anchor St','Tanglewood Dr'];
 
   const DRIVER_NAMES = ['John','Alex','David','Mike','Sarah','Priya','Marcus','Elena'];
+  const DRIVER_SURNAMES = ['Alvarado','Chen','Whitfield','Okafor','Nakamura','Singh','Delgado','Petrov'];
   const DRIVER_AVATARS = ['🧑🏽‍✈️','🧑🏻‍✈️','🧑🏿‍✈️','🧑🏼‍✈️','👩🏽‍✈️','👩🏻‍✈️','🧑🏾‍✈️','👩🏿‍✈️'];
+  const VEHICLES = ['Ford Transit 250','Chevy Express 3500','Ram ProMaster 2500','Ford F-150 w/ Hitch'];
+  const CERTS = [['Trailer Safety I'], ['Trailer Safety I','Trailer Safety II'], ['Trailer Safety I','Defensive Driving'], ['Trailer Safety I','Trailer Safety II','Defensive Driving']];
 
   function jitter(v, amt) { return v + (rand() - 0.5) * amt; }
 
@@ -50,13 +53,28 @@
     let i = 0;
     HUBS.forEach(hub => {
       for (let d = 0; d < hub.drivers; d++) {
+        const hireYear = 2019 + randInt(0, 6);
+        const tenureYears = 2026 - hireYear;
         drivers.push({
           id: 'D' + (i + 1),
           name: DRIVER_NAMES[i % DRIVER_NAMES.length],
+          fullName: `${DRIVER_NAMES[i % DRIVER_NAMES.length]} ${DRIVER_SURNAMES[i % DRIVER_SURNAMES.length]}`,
           avatar: DRIVER_AVATARS[i % DRIVER_AVATARS.length],
           hub: hub.id,
           color: ['#2E90FA', '#10B981', '#F59E0B', '#EF4444', '#7C3AED', '#EC4899', '#06B6D4', '#84CC16'][i % 8],
           status: rand() > 0.85 ? 'On Call' : 'Active',
+          phone: `(512) ${randInt(200, 999)}-${String(randInt(0, 9999)).padStart(4, '0')}`,
+          email: `${DRIVER_NAMES[i % DRIVER_NAMES.length].toLowerCase()}.${DRIVER_SURNAMES[i % DRIVER_SURNAMES.length].toLowerCase()}@lakesiderentals.com`,
+          vehicle: VEHICLES[i % VEHICLES.length],
+          plate: `TX-${String.fromCharCode(65 + (i % 26))}${String.fromCharCode(66 + (i % 25))}${randInt(1000, 9999)}`,
+          hireDate: `${['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][randInt(0,11)]} ${hireYear}`,
+          tenureYears,
+          rating: (4.5 + rand() * 0.5).toFixed(1),
+          totalDeliveries: randInt(1200, 6400) + tenureYears * 400,
+          safetyScore: randInt(92, 100),
+          onTimeRate: (95 + rand() * 4.5).toFixed(1),
+          certifications: CERTS[i % CERTS.length],
+          preferredTrailer: rand() > 0.5 ? 'Double' : 'Single',
         });
         i++;
       }
