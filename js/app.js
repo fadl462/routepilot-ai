@@ -20,6 +20,7 @@
     $('.app-shell').classList.add('active');
     renderDashboard();
     renderOptimizerView();
+    renderResultsView();
     renderTrailerView();
     renderConflictView();
     renderDeadheadView();
@@ -777,7 +778,18 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
             { label: 'Fuel Savings ($)', data: d.fuel, borderColor: '#2E90FA', backgroundColor: 'rgba(46,144,250,0.08)', tension: 0.4, fill: true },
           ]
         },
-        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+        options: {
+          responsive: true,
+          interaction: { mode: 'index', intersect: false },
+          hover: { mode: 'index', intersect: false },
+          plugins: {
+            legend: { position: 'bottom' },
+            tooltip: { enabled: true, mode: 'index', intersect: false, backgroundColor: '#0A2647', padding: 10, cornerRadius: 8 },
+          },
+          scales: { y: { beginAtZero: true } },
+          elements: { point: { radius: 4, hoverRadius: 7, hitRadius: 12 } },
+          onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
+        }
       });
     }
     draw('weekly');
