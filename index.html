@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RoutePilot AI — Intelligent Dispatch &amp; Route Optimization</title>
+<meta name="description" content="AI-powered daily scheduling and route optimization for golf cart rental operations.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2245%22 fill=%22%23123B73%22/><circle cx=%2250%22 cy=%2250%22 r=%2212%22 fill=%22%2310B981%22/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ============================================================
+     LOGIN SCREEN
+     ============================================================ -->
+<div class="login-screen">
+  <div class="login-visual">
+    <div class="brand-mark">
+      <span class="logo-dot"></span>
+      <span class="brand-name">RoutePilot AI</span>
+    </div>
+
+    <div class="route-illustration">
+      <svg viewBox="0 0 500 320" fill="none">
+        <path class="route-line animated" d="M40 260 Q 120 60, 210 150 T 340 90 Q 400 60, 460 130" stroke="#2E90FA"/>
+        <path class="route-line animated" style="animation-delay:.3s" d="M60 90 Q 150 220, 250 200 T 440 240" stroke="#10B981"/>
+        <circle class="hub-dot" cx="40" cy="260" r="7"/>
+        <circle class="hub-dot" cx="60" cy="90" r="7"/>
+        <circle class="stop-dot" cx="210" cy="150" r="5"/>
+        <circle class="stop-dot" cx="340" cy="90" r="5"/>
+        <circle class="stop-dot" cx="250" cy="200" r="5"/>
+        <circle class="stop-dot" cx="440" cy="240" r="5"/>
+        <circle class="stop-dot" cx="460" cy="130" r="5"/>
+      </svg>
+    </div>
+
+    <div>
+      <div class="tagline">Intelligent Dispatch. Smarter Routes. Happier Customers.</div>
+      <div class="feature-list" style="margin-top:20px">
+        <div class="feat"><span class="check">✓</span> AI Scheduling</div>
+        <div class="feat"><span class="check">✓</span> Driver Management</div>
+        <div class="feat"><span class="check">✓</span> Route Optimization</div>
+        <div class="feat"><span class="check">✓</span> Trailer Allocation</div>
+        <div class="feat"><span class="check">✓</span> Conflict Prediction</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="login-form-side">
+    <div class="login-card">
+      <div class="eyebrow">Daily Dispatch Optimization System</div>
+      <h1>Good morning.</h1>
+      <p class="sub">Sign in to build today's optimized route plan.</p>
+      <form id="loginForm">
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="dispatch@yourfleet.com" value="dispatch@lakesiderentals.com" required>
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" placeholder="••••••••" value="routepilot2026" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Login</button>
+      </form>
+      <button id="demoLoginBtn" class="btn btn-ghost btn-block" style="margin-top:10px">Continue with demo account</button>
+      <div class="login-hint">This is a prototype — any email &amp; password will work.</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     APP SHELL
+     ============================================================ -->
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="logo-dot"></span>
+      <div class="name">RoutePilot AI<small>DISPATCH CONSOLE</small></div>
+    </div>
+
+    <nav>
+      <div class="nav-group">
+        <div class="nav-item active" data-view="dashboard"><span class="ic">⌂</span> Dashboard</div>
+        <div class="nav-item" data-view="optimizer"><span class="ic">✳</span> Daily Optimizer</div>
+        <div class="nav-item" data-view="routes"><span class="ic">➜</span> Today's Routes</div>
+      </div>
+      <div class="nav-label">Fleet</div>
+      <div class="nav-group">
+        <div class="nav-item" data-view="drivers"><span class="ic">🧑‍✈️</span> Drivers</div>
+        <div class="nav-item" data-view="trailers"><span class="ic">⛟</span> Trailers</div>
+        <div class="nav-item" data-view="hubs"><span class="ic">📍</span> Rental Hubs</div>
+        <div class="nav-item" data-view="bookings"><span class="ic">📋</span> Bookings</div>
+        <div class="nav-item" data-view="map"><span class="ic">🗺</span> Customer Map</div>
+      </div>
+      <div class="nav-label">Intelligence</div>
+      <div class="nav-group">
+        <div class="nav-item" data-view="dispatcher"><span class="ic">💬</span> AI Dispatcher</div>
+        <div class="nav-item" data-view="history"><span class="ic">🕘</span> Optimization History</div>
+        <div class="nav-item" data-view="reports"><span class="ic">📈</span> Reports</div>
+      </div>
+      <div class="nav-label">System</div>
+      <div class="nav-group">
+        <div class="nav-item" data-view="settings"><span class="ic">⚙</span> Settings</div>
+        <div class="nav-item" data-view="promptbuilder"><span class="ic">{ }</span> Prompt Builder</div>
+        <div class="nav-item" data-view="mobiledriver"><span class="ic">📱</span> Driver Mobile View</div>
+        <div class="nav-item" data-view="customertimeline"><span class="ic">⏱</span> Customer Timeline</div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="avatar">🧭</div>
+      <div class="who">Dispatch Team<div class="role">Lakeside Rentals</div></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="title-block">
+        <h2 id="topbarTitle">Dashboard</h2>
+        <div class="date" id="topbarDate">Live snapshot of today's dispatch operation</div>
+      </div>
+      <div class="topbar-actions">
+        <span class="pill pill-emerald"><span class="pill-dot"></span>All systems normal</span>
+        <button class="icon-btn" title="Notifications">🔔</button>
+        <button class="icon-btn" title="Help">?</button>
+      </div>
+    </div>
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <section class="view active" id="view-dashboard">
+      <div class="grid grid-4" id="dashStats"></div>
+      <div class="grid grid-4" id="dashStats2" style="margin-top:18px"></div>
+
+      <div class="grid grid-2" style="margin-top:28px;align-items:start">
+        <div class="card card-pad">
+          <div class="section-head" style="margin:0 0 12px"><h3>Today's Operations</h3></div>
+          <div class="ops-feed" id="opsFeed"></div>
+        </div>
+        <div class="card card-pad">
+          <div class="section-head" style="margin:0 0 12px"><h3>Quick Actions</h3></div>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <button class="btn btn-primary btn-block" onclick="document.querySelector('[data-view=optimizer]').click()">Open Daily Optimizer →</button>
+            <button class="btn btn-ghost btn-block" onclick="document.querySelector('[data-view=dispatcher]').click()">Ask the AI Dispatcher</button>
+            <button class="btn btn-ghost btn-block" onclick="document.querySelector('[data-view=reports]').click()">View Weekly Report</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== DAILY OPTIMIZER ===================== -->
+    <section class="view" id="view-optimizer">
+      <div class="optimizer-hero">
+        <h2>Optimize Today's Schedule</h2>
+        <p>Feed in bookings, confirm hub capacity, and let RoutePilot build the lowest-mileage plan that still honors every one-hour window.</p>
+      </div>
+
+      <div class="grid grid-2" style="margin-top:24px;align-items:start">
+        <div class="card card-pad">
+          <h3 style="font-size:15px;margin-bottom:12px">Upload Today's Bookings</h3>
+          <div class="upload-zone">
+            <div style="font-size:26px">📄</div>
+            <div style="font-weight:600;margin-top:8px;font-size:13.6px">Drop a CSV here, or</div>
+            <button class="btn btn-ghost btn-sm" style="margin-top:10px">Import CSV</button>
+          </div>
+          <div class="or-divider">OR</div>
+          <h3 style="font-size:15px;margin-bottom:10px">Paste Today's Booking List</h3>
+          <div style="font-size:11px;color:var(--muted);margin-bottom:8px;font-family:var(--font-mono)">Customer · Address · Phone · Delivery · Pickup · Qty · Notes</div>
+          <textarea class="paste-area" id="pasteArea"></textarea>
+        </div>
+
+        <div>
+          <div class="card card-pad">
+            <h3 style="font-size:15px;margin-bottom:12px">Hub Configuration</h3>
+            <div id="hubConfigList"></div>
+          </div>
+          <div class="card card-pad" style="margin-top:18px">
+            <h3 style="font-size:15px;margin-bottom:12px">Today's Changes</h3>
+            <div class="change-toggle-list" id="changeList"></div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-accent btn-lg btn-block" id="optimizeBtn" style="margin-top:24px">✳ Optimize Routes</button>
+    </section>
+
+    <!-- ===================== RESULTS / TODAY'S ROUTES ===================== -->
+    <section class="view" id="view-routes">
+      <div class="results-summary" id="resultsSummary"></div>
+
+      <div class="section-head"><h3>Customer &amp; Route Map</h3><span class="hint">Each driver has their own color — hover a stop for details</span></div>
+      <div id="resultsMap"></div>
+      <div class="map-legend" id="mapLegend"></div>
+
+      <div class="section-head">
+        <h3>Driver Routes</h3>
+        <button class="btn btn-ghost btn-sm" id="recalcBtn">Recalculate Routes</button>
+      </div>
+      <div class="grid grid-3" id="driverCards"></div>
+
+      <div class="section-head"><h3>AI Reasoning</h3><span class="hint">Not just what — why</span></div>
+      <div class="reasoning-panel" id="reasoningPanel"></div>
+
+      <div class="section-head"><h3>Export</h3></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-ghost" data-export="PDF">⬇ PDF Route Sheets</button>
+        <button class="btn btn-ghost" data-export="CSV">⬇ CSV</button>
+        <button class="btn btn-ghost" data-export="Excel">⬇ Excel</button>
+        <button class="btn btn-ghost" data-export="Driver SMS">💬 Send Driver SMS</button>
+        <button class="btn btn-ghost" data-export="Customer ETA">💬 Send Customer ETA Messages</button>
+      </div>
+    </section>
+
+    <!-- ===================== DRIVERS ===================== -->
+    <section class="view" id="view-drivers">
+      <div class="grid grid-3" id="driversGrid"></div>
+    </section>
+
+    <!-- ===================== TRAILERS ===================== -->
+    <section class="view" id="view-trailers">
+      <div class="section-head" style="margin-top:0"><h3>Trailer Assignment</h3><span class="hint">Live load balancing across the fleet</span></div>
+      <div class="grid grid-3" id="trailerCards"></div>
+      <div class="ai-suggest-box">
+        <div class="ic">💡</div>
+        <div style="flex:1">
+          <b>AI recommendation:</b> Move Booking #48 to Driver Alex — mileage unchanged, trailer utilization increases <b>66% → 92%</b>.
+        </div>
+        <button class="btn btn-accent btn-sm">Apply</button>
+      </div>
+
+      <div class="section-head"><h3>Conflict Detector</h3><span class="hint">Flagged before they happen</span></div>
+      <div class="grid grid-2" id="conflictCards"></div>
+
+      <div class="section-head"><h3>Deadhead Analysis</h3></div>
+      <div class="card card-pad">
+        <div class="compare-bars" id="deadheadBars"></div>
+        <div style="text-align:center;margin-top:10px;color:var(--emerald);font-weight:700;font-size:14px">↓ 24 Miles Saved · 29% Reduction</div>
+      </div>
+    </section>
+
+    <!-- ===================== HUBS ===================== -->
+    <section class="view" id="view-hubs">
+      <div class="grid grid-3" id="hubsGrid"></div>
+      <div class="section-head"><h3>Demand Heatmap</h3><span class="hint">Where today's bookings cluster</span></div>
+      <div class="card card-pad" id="heatmapRows"></div>
+      <div class="card card-pad" style="margin-top:14px;background:var(--navy-tint);border:none">
+        <b>AI recommendation:</b> Hub B should handle Airport jobs today — it's 4.1 miles closer than Hub C on average.
+      </div>
+    </section>
+
+    <!-- ===================== BOOKINGS / SAMPLE DATASET ===================== -->
+    <section class="view" id="view-bookings">
+      <div class="dataset-toolbar">
+        <input type="text" id="datasetSearch" placeholder="Search by customer, address, or neighborhood…">
+        <span class="hint" id="datasetCount" style="color:var(--muted);font-size:12.5px"></span>
+      </div>
+      <div class="card table-wrap" id="datasetTable"></div>
+    </section>
+
+    <!-- ===================== CUSTOMER MAP ===================== -->
+    <section class="view" id="view-map">
+      <div class="section-head" style="margin-top:0"><h3>Full Customer Map</h3><span class="hint">All bookings, colored by driver</span></div>
+      <div id="dailyMap"></div>
+    </section>
+
+    <!-- ===================== AI DISPATCHER ===================== -->
+    <section class="view" id="view-dispatcher">
+      <div class="card" style="max-width:720px;margin:0 auto">
+        <div class="chat-shell">
+          <div class="chat-log" id="chatLog"></div>
+          <div class="chat-suggestions">
+            <button class="sg">Driver Mike called in sick.</button>
+            <button class="sg">Move Driver 2 to Hub C</button>
+            <button class="sg">What's today's optimization score?</button>
+          </div>
+          <form class="chat-input-row" id="chatForm">
+            <input type="text" id="chatInput" placeholder="Type naturally, e.g. “Move Driver 3 to Hub A”…" autocomplete="off">
+            <button type="submit" class="btn btn-primary">Send</button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== OPTIMIZATION HISTORY ===================== -->
+    <section class="view" id="view-history">
+      <div class="card table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Runtime</th><th>Bookings</th><th>Mileage Before</th><th>Mileage After</th><th>Saved</th><th>Score</th></tr></thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ===================== REPORTS ===================== -->
+    <section class="view" id="view-reports">
+      <div class="tab-row">
+        <button class="tab-btn active">Weekly</button>
+        <button class="tab-btn">Monthly</button>
+      </div>
+      <div class="card card-pad"><canvas id="reportsChart" height="90"></canvas></div>
+      <div class="section-head"><h3>Fleet Metrics</h3></div>
+      <div class="grid grid-3" id="reportTiles"></div>
+    </section>
+
+    <!-- ===================== SETTINGS ===================== -->
+    <section class="view" id="view-settings">
+      <div class="card card-pad" style="max-width:680px">
+        <h3 style="font-size:16px;margin-bottom:6px">Business Rules</h3>
+        <p style="color:var(--muted);font-size:12.5px;margin-bottom:6px">These rules apply to every optimization run.</p>
+
+        <div class="settings-row">
+          <div><div class="lbl">Maximum Delay <span class="tooltip-help" tabindex="0">?<span class="bubble">The longest a delivery can run past its requested time before RoutePilot flags a conflict.</span></span></div><div class="desc">Customer delivery commitment window</div></div>
+          <input type="number" value="60">
+        </div>
+        <div class="settings-row">
+          <div><div class="lbl">Priority</div><div class="desc">What RoutePilot optimizes for first</div></div>
+          <select><option>Minimize Mileage</option><option>Earliest Booking First</option><option>Balanced</option></select>
+        </div>
+        <div class="settings-row">
+          <div><div class="lbl">Traffic Buffer</div><div class="desc">Extra minutes added near known congestion</div></div>
+          <input type="number" value="15">
+        </div>
+        <div class="settings-row">
+          <div><div class="lbl">Loading Time</div><div class="desc">Minutes to load carts at the hub</div></div>
+          <input type="number" value="7">
+        </div>
+        <div class="settings-row">
+          <div><div class="lbl">Unload Time</div><div class="desc">Minutes to unload carts at delivery</div></div>
+          <input type="number" value="6">
+        </div>
+        <div class="settings-row">
+          <div><div class="lbl">Auto-detect duplicate bookings</div><div class="desc">Flag likely duplicates and address typos</div></div>
+          <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+        <div class="settings-row">
+          <div><div class="lbl">Weather impact indicator</div><div class="desc">Adjust schedule suggestions for forecasted weather</div></div>
+          <label class="switch"><input type="checkbox" checked><span class="slider"></span></label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== PROMPT BUILDER ===================== -->
+    <section class="view" id="view-promptbuilder">
+      <div class="grid grid-2" style="align-items:start">
+        <div class="card card-pad">
+          <h3 style="font-size:15px;margin-bottom:12px">Today's Variables</h3>
+          <div id="varList"></div>
+        </div>
+        <div class="card card-pad">
+          <h3 style="font-size:15px;margin-bottom:6px">Generated Prompt</h3>
+          <p style="font-size:12px;color:var(--muted);margin-bottom:12px">Copy this into ChatGPT or any comparable LLM — no code required.</p>
+          <div class="prompt-editor" id="promptEditor"></div>
+          <button class="btn btn-primary btn-block" style="margin-top:14px" id="copyPromptBtn">📋 Copy Full Prompt</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== DRIVER MOBILE VIEW ===================== -->
+    <section class="view" id="view-mobiledriver">
+      <div class="phone-frame">
+        <div class="phone-notch"></div>
+        <div class="phone-screen">
+          <div class="phone-status">
+            <div class="greet">Good Morning, John</div>
+            <div class="today">Today's Route · Hub A · 4 stops</div>
+          </div>
+          <div class="phone-body" id="phoneStops"></div>
+          <div class="swipe-btn" id="swipeStartBtn">START ROUTE →</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CUSTOMER TIMELINE ===================== -->
+    <section class="view" id="view-customertimeline">
+      <div class="card cust-timeline-card">
+        <h3 style="font-size:17px;margin-bottom:2px">Your Delivery Today</h3>
+        <p style="color:var(--muted);font-size:12.5px;margin-bottom:22px">Golf cart delivery for Smith · 4321 Lakeview Dr</p>
+        <div id="custSteps"></div>
+      </div>
+    </section>
+
+  </div>
+</div>
+
+<!-- ============================================================
+     AI THINKING OVERLAY
+     ============================================================ -->
+<div class="thinking-overlay" id="thinkingOverlay">
+  <div class="thinking-card">
+    <h3>RoutePilot AI is building today's plan…</h3>
+    <div id="thinkingSteps"></div>
+  </div>
+</div>
+
+<!-- ============================================================
+     ROUTE DETAIL MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3 id="modalTitle">Route Detail</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="copy-toast" id="copyToast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script>
+  // ---- fill in views that reuse data.js directly (drivers/hubs/history/daily map) ----
+  document.addEventListener('DOMContentLoaded', () => {
+    const D = window.RP_DATA;
+
+    document.getElementById('driversGrid').innerHTML = D.DRIVERS.map(d => `
+      <div class="card card-pad hoverable">
+        <div style="display:flex;align-items:center;gap:12px">
+          <span style="font-size:26px">${d.avatar}</span>
+          <div>
+            <div style="font-weight:700;font-size:14.5px">${d.name}</div>
+            <div style="font-size:12px;color:var(--muted)">Hub ${d.hub}</div>
+          </div>
+          <span class="pill ${d.status === 'Active' ? 'pill-emerald' : 'pill-amber'}" style="margin-left:auto"><span class="pill-dot"></span>${d.status}</span>
+        </div>
+      </div>`).join('');
+
+    document.getElementById('hubsGrid').innerHTML = D.HUBS.map(h => `
+      <div class="card card-pad hoverable">
+        <div style="display:flex;align-items:center;gap:10px"><span class="hub-dot" style="width:10px;height:10px;border-radius:50%;background:${h.color}"></span><b>${h.name}</b></div>
+        <div class="hub-inputs" style="margin-top:14px">
+          <div><label>Drivers</label><div style="font-family:var(--font-mono);font-weight:700;margin-top:4px">${h.drivers}</div></div>
+          <div><label>Single</label><div style="font-family:var(--font-mono);font-weight:700;margin-top:4px">${h.single}</div></div>
+          <div><label>Double</label><div style="font-family:var(--font-mono);font-weight:700;margin-top:4px">${h.double}</div></div>
+        </div>
+      </div>`).join('');
+
+    document.getElementById('historyBody').innerHTML = [
+      ['Jul 20, 2026','19s',182,208,166,'42 mi','95%'],
+      ['Jul 19, 2026','21s',179,201,163,'38 mi','94%'],
+      ['Jul 18, 2026','17s',188,214,171,'43 mi','96%'],
+      ['Jul 17, 2026','23s',175,197,159,'38 mi','93%'],
+      ['Jul 16, 2026','18s',183,205,164,'41 mi','95%'],
+    ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]} mi</td><td>${r[4]} mi</td><td style="color:var(--emerald);font-weight:700">${r[5]}</td><td>${r[6]}</td></tr>`).join('');
+
+    // full customer map (separate view)
+    const dailyMap = L.map('dailyMap').setView([D.CENTER.lat, D.CENTER.lng], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(dailyMap);
+    D.ROUTES.forEach(r => {
+      r.stops.forEach(s => {
+        L.circleMarker([s.lat, s.lng], { radius: 5, color: r.driver.color, fillColor: r.driver.color, fillOpacity: 0.85, weight: 1.5 })
+          .bindPopup(`<b>${s.customer}</b><br>${s.address}<br>${s.phone}<br>ETA ${s.deliveryTime}`)
+          .addTo(dailyMap);
+      });
+    });
+    D.HUBS.forEach(h => {
+      L.circleMarker([h.lat, h.lng], { radius: 9, color: '#0A2647', weight: 2, fillColor: '#fff', fillOpacity: 1 }).bindPopup(`<b>${h.name}</b>`).addTo(dailyMap);
+    });
+  });
+</script>
+</body>
+</html>
