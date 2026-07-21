@@ -97,6 +97,9 @@
       if (!dailyMap) initDailyMap();
       else setTimeout(() => dailyMap.invalidateSize(), 80);
     }
+    if (name === 'reports' && reportsChartInstance) {
+      setTimeout(() => reportsChartInstance.resize(), 80);
+    }
   }
 
   /* ---------------- TOOLTIP HELP ---------------- */
@@ -801,18 +804,50 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
      ============================================================ */
   function renderMobileView() {
     const r = D.ROUTES[0];
-    $('#phoneStops').innerHTML = r.stops.slice(0, 5).map((s, idx) => `
-      <div class="phone-stop-card">
+    const stops = r.stops.slice(0, 5);
+    let completedCount = 0;
+
+    function updateProgress() {
+      const pct = Math.round((completedCount / stops.length) * 100);
+      $('#phoneProgressFill').style.width = pct + '%';
+      $('#phoneStopCount').textContent = `${stops.length - completedCount} remaining`;
+    }
+
+    $('#phoneStops').innerHTML = stops.map((s, idx) => `
+      <div class="phone-stop-card" data-stop-idx="${idx}">
         <div class="row1"><span class="cust">Stop ${idx + 1} \u2014 ${s.customer}</span><span class="eta">${s.deliveryTime}</span></div>
-        <div style="font-size:12px;color:var(--muted);margin-top:4px">${s.address}</div>
-        <button class="btn btn-ghost btn-sm" style="margin-top:10px">Navigate \u2197</button>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">${s.address} \u00b7 ${s.qty} carts</div>
+        <div style="display:flex;gap:8px;margin-top:10px">
+          <button class="btn btn-ghost btn-sm" data-nav-stop="${idx}" style="flex:1">Navigate \u2197</button>
+          <button class="btn btn-accent btn-sm" data-complete-stop="${idx}" style="flex:1">\u2713 Mark Delivered</button>
+        </div>
       </div>
     `).join('');
+
+    $$('[data-complete-stop]').forEach(btn => btn.addEventListener('click', () => {
+      const card = btn.closest('.phone-stop-card');
+      if (card.classList.contains('done')) return;
+      card.classList.add('done');
+      btn.textContent = '\u2713 Delivered';
+      btn.disabled = true;
+      completedCount++;
+      updateProgress();
+    }));
+    $$('[data-nav-stop]').forEach(btn => btn.addEventListener('click', () => showToast('Opening turn-by-turn navigation\u2026')));
+
+    function tickClock() {
+      const now = new Date();
+      $('#phoneClock').textContent = now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    }
+    tickClock();
+    setInterval(tickClock, 30000);
+    updateProgress();
+
     const startBtn = $('#swipeStartBtn');
     let started = false;
     startBtn.addEventListener('click', () => {
       started = !started;
-      startBtn.textContent = started ? '\u2713 Route In Progress' : 'START ROUTE';
+      startBtn.textContent = started ? '\u2713 Route In Progress' : 'START ROUTE \u2192';
     });
   }
 
