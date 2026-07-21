@@ -32,6 +32,33 @@
     initChat();
   }
 
+  /* ---------------- THEME TOGGLE ---------------- */
+  const themeBtn = $('#themeToggleBtn');
+  function applyTheme(mode) {
+    document.body.classList.toggle('theme-dark', mode === 'dark');
+    themeBtn.textContent = mode === 'dark' ? '☀️' : '🌙';
+    themeBtn.title = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
+    localStorage.setItem('rp-theme', mode);
+  }
+  applyTheme(localStorage.getItem('rp-theme') === 'dark' ? 'dark' : 'light');
+  themeBtn.addEventListener('click', () => {
+    applyTheme(document.body.classList.contains('theme-dark') ? 'light' : 'dark');
+  });
+
+  /* ---------------- TOPBAR DROPDOWNS ---------------- */
+  function wireDropdown(btnId, panelId) {
+    const btn = $('#' + btnId), panel = $('#' + panelId);
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const willOpen = !panel.classList.contains('open');
+      $$('.dropdown-panel').forEach(p => p.classList.remove('open'));
+      if (willOpen) panel.classList.add('open');
+    });
+  }
+  wireDropdown('notifBtn', 'notifPanel');
+  wireDropdown('helpBtn', 'helpPanel');
+  document.addEventListener('click', () => $$('.dropdown-panel').forEach(p => p.classList.remove('open')));
+
   /* ---------------- NAVIGATION ---------------- */
   $$('.nav-item[data-view]').forEach(item => {
     item.addEventListener('click', () => switchView(item.dataset.view));
@@ -73,34 +100,37 @@
   function renderDashboard() {
     const s = D.stats;
     $('#dashStats').innerHTML = `
-      <div class="card stat-card hoverable"><div class="stat-icon">\u{1F4C5}</div>
+      <div class="card stat-card hoverable" data-nav="bookings"><div class="stat-icon">\u{1F4C5}</div>
         <div class="stat-label">Bookings Today</div><div class="stat-value">${s.bookingsToday}</div>
         <div class="stat-sub">across ${D.HUBS.length} hubs</div></div>
-      <div class="card stat-card hoverable"><div class="stat-icon">\u{1F468}\u200D\u2708\uFE0F</div>
+      <div class="card stat-card hoverable" data-nav="drivers"><div class="stat-icon">\u{1F468}\u200D\u2708\uFE0F</div>
         <div class="stat-label">Drivers</div><div class="stat-value">${s.driversActive} Active</div>
         <div class="stat-sub">of ${s.driversTotal} on roster</div></div>
-      <div class="card stat-card hoverable"><div class="stat-icon">\u26F3</div>
+      <div class="card stat-card hoverable" data-nav="trailers"><div class="stat-icon">\u26F3</div>
         <div class="stat-label">Golf Carts</div><div class="stat-value">${s.cartsScheduled}</div>
         <div class="stat-sub">Scheduled today</div></div>
-      <div class="card stat-card hoverable"><div class="stat-icon">\u{1F4CA}</div>
+      <div class="card stat-card hoverable" data-nav="reports"><div class="stat-icon">\u{1F4CA}</div>
         <div class="stat-label">Optimization Score ${helpIcon('How efficiently today\u2019s plan clusters stops and balances driver load, from 0\u2013100.')}</div>
         <div class="stat-value">${s.optimizationScore}%</div>
         <div class="stat-sub">On-time prediction ${s.onTimePrediction}%</div></div>
     `;
     $('#dashStats2').innerHTML = `
-      <div class="card stat-card hoverable"><div class="stat-icon">\u{1F6E3}\uFE0F</div>
+      <div class="card stat-card hoverable" data-nav="routes"><div class="stat-icon">\u{1F6E3}\uFE0F</div>
         <div class="stat-label">Estimated Mileage</div><div class="stat-value">${s.mileageAfter} mi</div>
         <div class="stat-sub">vs ${s.mileageBefore} mi unoptimized</div></div>
-      <div class="card stat-card hoverable"><div class="stat-icon">\u2705</div>
+      <div class="card stat-card hoverable" data-nav="trailers"><div class="stat-icon">\u2705</div>
         <div class="stat-label">Potential Savings</div><div class="stat-value">${s.savingsMiles} mi</div>
         <div class="stat-sub">by clustering nearby stops</div></div>
-      <div class="card stat-card hoverable"><div class="stat-icon">\u26FD</div>
+      <div class="card stat-card hoverable" data-nav="reports"><div class="stat-icon">\u26FD</div>
         <div class="stat-label">Estimated Fuel Savings</div><div class="stat-value">$${s.fuelSavings}</div>
         <div class="stat-sub">at today\u2019s mileage rate</div></div>
-      <div class="card stat-card hoverable"><div class="stat-icon">\u{1F3AF}</div>
+      <div class="card stat-card hoverable" data-nav="trailers"><div class="stat-icon">\u{1F3AF}</div>
         <div class="stat-label">Conflicts Detected</div><div class="stat-value">${D.CONFLICTS.filter(c=>!c.within).length}</div>
         <div class="stat-sub warn">Needs dispatcher review</div></div>
     `;
+    $$('#dashStats [data-nav], #dashStats2 [data-nav]').forEach(card => {
+      card.addEventListener('click', () => document.querySelector(`.nav-item[data-view="${card.dataset.nav}"]`).click());
+    });
     $('#opsFeed').innerHTML = `
       <div class="feed-item ok"><div class="ic">\u2713</div><div class="txt"><b>7 routes</b> fully optimized</div></div>
       <div class="feed-item warn"><div class="ic">\u26A0</div><div class="txt"><b>2 customer conflicts</b> detected \u2014 review in Conflict Detector</div></div>
@@ -323,6 +353,108 @@
   $('#modalClose').addEventListener('click', () => $('#modalOverlay').classList.remove('active'));
   $('#modalOverlay').addEventListener('click', (e) => { if (e.target.id === 'modalOverlay') $('#modalOverlay').classList.remove('active'); });
 
+  function openDetailModal(title, bodyHtml) {
+    $('#modalTitle').textContent = title;
+    $('#modalBody').innerHTML = bodyHtml;
+    $('#modalOverlay').classList.add('active');
+  }
+
+  /* ---- driver profile modal ---- */
+  function openDriverModal(driverId) {
+    const r = D.ROUTES.find(x => x.driver.id === driverId);
+    const d = D.DRIVERS.find(x => x.id === driverId);
+    if (!d) return;
+    const weekMiles = [34, 41, 29, 38, r ? r.mileage : 33, 0, 0];
+    openDetailModal(`${d.name} \u2014 Driver Profile`, `
+      <div style="display:flex;align-items:center;gap:16px">
+        <div style="font-size:40px">${d.avatar}</div>
+        <div>
+          <div style="font-weight:700;font-size:18px">${d.name}</div>
+          <div style="color:var(--muted);font-size:13px">Hub ${d.hub} \u00b7 <span class="pill ${d.status === 'Active' ? 'pill-emerald' : 'pill-amber'}" style="margin-left:4px"><span class="pill-dot"></span>${d.status}</span></div>
+        </div>
+      </div>
+      <div class="grid grid-3" style="margin-top:20px">
+        <div class="card card-pad"><div class="stat-label">Today's Mileage</div><div class="stat-value" style="font-size:22px">${r ? r.mileage : '\u2014'} mi</div></div>
+        <div class="card card-pad"><div class="stat-label">Utilization</div><div class="stat-value" style="font-size:22px">${r ? r.utilization : '\u2014'}%</div></div>
+        <div class="card card-pad"><div class="stat-label">Trailer Today</div><div class="stat-value" style="font-size:22px">${r ? r.trailer : '\u2014'}</div></div>
+      </div>
+      <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Mileage \u2014 Last 5 Weekdays</h3></div>
+      <div class="compare-bars" style="height:120px;gap:14px">
+        ${weekMiles.slice(0,5).map((m,i) => `<div class="compare-bar-col"><div class="val" style="font-size:11px">${m}</div><div class="compare-bar ${i===4?'after':'before'}" style="height:${Math.round(m/45*100)}%;width:40px"></div><div class="lbl" style="font-size:10.5px">${['Mon','Tue','Wed','Thu','Today'][i]}</div></div>`).join('')}
+      </div>
+      ${r ? `<div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Today's Stops</h3></div>
+      <div class="stop-list" style="max-height:220px">
+        ${r.stops.map((s,idx) => `<div class="stop-row"><div class="num">${idx+1}</div><div class="info"><b>${s.customer}</b><span>${s.address} \u00b7 ETA ${s.deliveryTime}</span></div></div>`).join('')}
+      </div>` : ''}
+    `);
+  }
+
+  /* ---- hub profile modal ---- */
+  function openHubModal(hubId) {
+    const h = D.HUBS.find(x => x.id === hubId);
+    if (!h) return;
+    const hubDrivers = D.DRIVERS.filter(d => d.hub === hubId);
+    const hubTrailers = D.TRAILERS.filter(t => t.hub === hubId);
+    const hubRoutes = D.ROUTES.filter(r => r.hub.id === hubId);
+    const totalMileage = hubRoutes.reduce((s, r) => s + r.mileage, 0).toFixed(1);
+    const totalStops = hubRoutes.reduce((s, r) => s + r.stops.length, 0);
+    openDetailModal(`${h.name}`, `
+      <div class="grid grid-3">
+        <div class="card card-pad"><div class="stat-label">Drivers</div><div class="stat-value" style="font-size:22px">${hubDrivers.length}</div></div>
+        <div class="card card-pad"><div class="stat-label">Bookings Today</div><div class="stat-value" style="font-size:22px">${totalStops}</div></div>
+        <div class="card card-pad"><div class="stat-label">Total Mileage</div><div class="stat-value" style="font-size:22px">${totalMileage} mi</div></div>
+      </div>
+      <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Drivers at this hub</h3></div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        ${hubDrivers.map(d => `<div class="stop-row" style="cursor:pointer" data-driver-jump="${d.id}"><div style="font-size:18px">${d.avatar}</div><div class="info"><b>${d.name}</b><span>${d.status}</span></div></div>`).join('')}
+      </div>
+      <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Trailer Inventory</h3></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        ${hubTrailers.map(t => `<span class="pill ${t.type === 'Double' ? 'pill-blue' : 'pill-emerald'}">${t.id} \u00b7 ${t.type} (${t.capacity} carts)</span>`).join('')}
+      </div>
+    `);
+    $$('[data-driver-jump]').forEach(row => row.addEventListener('click', () => openDriverModal(row.dataset.driverJump)));
+  }
+
+  /* ---- trailer detail modal ---- */
+  function openTrailerModal(t) {
+    openDetailModal(`${t.id} \u2014 ${t.type} Trailer`, `
+      <div class="grid grid-3">
+        <div class="card card-pad"><div class="stat-label">Driver</div><div class="stat-value" style="font-size:20px">${t.driver}</div></div>
+        <div class="card card-pad"><div class="stat-label">Carts Loaded</div><div class="stat-value" style="font-size:20px">${t.carts}</div></div>
+        <div class="card card-pad"><div class="stat-label">Efficiency</div><div class="stat-value" style="font-size:20px">${t.eff}%</div></div>
+      </div>
+      <div class="eff-bar-track" style="margin-top:18px;height:12px"><div class="eff-bar-fill" style="width:${t.eff}%"></div></div>
+      <p style="margin-top:14px;font-size:13px;color:var(--muted)">${t.eff < 75 ? 'This trailer is under-loaded relative to its capacity \u2014 RoutePilot suggests moving a nearby single-cart booking onto this route to lift utilization.' : 'This trailer is running near full efficiency for today\u2019s load.'}</p>
+    `);
+  }
+
+  /* ---- booking detail modal ---- */
+  function openBookingModal(bookingId) {
+    const b = D.BOOKINGS.find(x => x.id === bookingId);
+    if (!b) return;
+    const route = D.ROUTES.find(r => r.stops.some(s => s.id === bookingId));
+    const driverName = route ? route.driver.name : 'Unassigned';
+    openDetailModal(`Booking ${b.id} \u2014 ${b.customer}`, `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span class="badge badge-${b.priority.toLowerCase()}">${b.priority}</span>
+        <span class="pill pill-blue">Assigned to ${driverName}</span>
+      </div>
+      <div class="grid grid-2" style="margin-top:16px">
+        <div class="card card-pad"><div class="stat-label">Address</div><div style="font-family:var(--font-mono);font-size:13.5px;margin-top:6px">${b.address}</div></div>
+        <div class="card card-pad"><div class="stat-label">Phone</div><div style="font-family:var(--font-mono);font-size:13.5px;margin-top:6px">${b.phone}</div></div>
+        <div class="card card-pad"><div class="stat-label">Delivery Window</div><div style="font-family:var(--font-mono);font-size:13.5px;margin-top:6px">${b.deliveryTime} \u2014 within 1 hr</div></div>
+        <div class="card card-pad"><div class="stat-label">Pickup</div><div style="font-family:var(--font-mono);font-size:13.5px;margin-top:6px">${b.pickupTime}</div></div>
+        <div class="card card-pad"><div class="stat-label">Golf Carts</div><div style="font-family:var(--font-mono);font-size:13.5px;margin-top:6px">${b.qty}</div></div>
+        <div class="card card-pad"><div class="stat-label">Neighborhood</div><div style="font-family:var(--font-mono);font-size:13.5px;margin-top:6px">${b.neighborhood}</div></div>
+      </div>
+      ${b.notes ? `<div style="margin-top:14px;font-size:13px;color:var(--muted)"><b style="color:var(--ink)">Notes:</b> ${b.notes}</div>` : ''}
+    `);
+  }
+  window.RP_openDriverModal = openDriverModal;
+  window.RP_openHubModal = openHubModal;
+  window.RP_openBookingModal = openBookingModal;
+
   /* ============================================================
      TRAILER OPTIMIZER
      ============================================================ */
@@ -332,14 +464,15 @@
       { id: 'Trailer 2', type: 'Single', driver: 'Alex', carts: 2, eff: 66 },
       { id: 'Trailer 3', type: 'Double', driver: 'David', carts: 5, eff: 90 },
     ];
-    $('#trailerCards').innerHTML = sample.map(t => `
-      <div class="card trailer-card hoverable">
+    $('#trailerCards').innerHTML = sample.map((t, i) => `
+      <div class="card trailer-card hoverable" data-trailer-i="${i}">
         <div class="th"><span class="tname">${t.id}</span><span class="pill ${t.type === 'Double' ? 'pill-blue' : 'pill-emerald'}">${t.type}</span></div>
         <div style="font-size:12.5px;color:var(--muted);margin-top:8px">Driver ${t.driver} \u00b7 ${t.carts} carts loaded</div>
         <div class="eff-bar-track"><div class="eff-bar-fill" style="width:${t.eff}%"></div></div>
         <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px"><span>Efficiency</span><span style="font-weight:700;color:var(--navy-dark)">${t.eff}%</span></div>
       </div>
     `).join('');
+    $$('[data-trailer-i]').forEach(card => card.addEventListener('click', () => openTrailerModal(sample[+card.dataset.trailerI])));
   }
 
   /* ============================================================
@@ -523,32 +656,56 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
       <table class="data-table">
         <thead><tr><th>ID</th><th>Customer</th><th>Address</th><th>Delivery</th><th>Pickup</th><th>Qty</th><th>Priority</th></tr></thead>
         <tbody>
-          ${rows.map(b => `<tr>
+          ${rows.map(b => `<tr class="row-clickable" data-booking-id="${b.id}">
             <td>${b.id}</td><td style="font-family:var(--font-body);font-weight:600">${b.customer}</td>
             <td>${b.address}</td><td>${b.deliveryTime}</td><td>${b.pickupTime}</td><td>${b.qty}</td>
             <td><span class="badge badge-${b.priority.toLowerCase()}">${b.priority}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>`;
+    $$('#datasetTable tr[data-booking-id]').forEach(tr => tr.addEventListener('click', () => openBookingModal(tr.dataset.bookingId)));
   }
   $('#datasetSearch').addEventListener('input', (e) => renderDataset(e.target.value));
 
   /* ============================================================
      REPORTS (Chart.js)
      ============================================================ */
+  let reportsChartInstance = null;
   function renderReports() {
-    const ctx = $('#reportsChart').getContext('2d');
-    new Chart(ctx, {
-      type: 'line',
-      data: {
+    const datasets = {
+      weekly: {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: [
-          { label: 'Miles Saved', data: [38, 41, 35, 47, 43, 29, 33], borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.4, fill: true },
-          { label: 'Fuel Savings ($)', data: [112, 121, 104, 138, 127, 88, 97], borderColor: '#2E90FA', backgroundColor: 'rgba(46,144,250,0.08)', tension: 0.4, fill: true },
-        ]
+        miles: [38, 41, 35, 47, 43, 29, 33],
+        fuel: [112, 121, 104, 138, 127, 88, 97],
       },
-      options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
-    });
+      monthly: {
+        labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+        miles: [261, 248, 279, 266],
+        fuel: [774, 731, 823, 788],
+      }
+    };
+    function draw(range) {
+      const d = datasets[range];
+      if (reportsChartInstance) reportsChartInstance.destroy();
+      reportsChartInstance = new Chart($('#reportsChart').getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: d.labels,
+          datasets: [
+            { label: 'Miles Saved', data: d.miles, borderColor: '#10B981', backgroundColor: 'rgba(16,185,129,0.1)', tension: 0.4, fill: true },
+            { label: 'Fuel Savings ($)', data: d.fuel, borderColor: '#2E90FA', backgroundColor: 'rgba(46,144,250,0.08)', tension: 0.4, fill: true },
+          ]
+        },
+        options: { responsive: true, plugins: { legend: { position: 'bottom' } }, scales: { y: { beginAtZero: true } } }
+      });
+    }
+    draw('weekly');
+    $$('#view-reports .tab-btn').forEach(tab => tab.addEventListener('click', () => {
+      $$('#view-reports .tab-btn').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      draw(tab.textContent.toLowerCase());
+    }));
+
     $('#reportTiles').innerHTML = [
       ['Driver Productivity', '94%', 'up'], ['Trailer Utilization', '91%', 'up'],
       ['Late Deliveries', '0.8%', 'down'], ['Customer Satisfaction', '4.9 / 5', 'up'],
@@ -560,12 +717,6 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
         <div class="stat-sub ${dir === 'down' ? '' : ''}">${dir === 'up' ? '\u2191 trending up' : '\u2193 trending down (good)'}</div>
       </div>`).join('');
   }
-
-  /* ---------------- report tabs ---------------- */
-  $$('.tab-btn').forEach(tab => tab.addEventListener('click', () => {
-    $$('.tab-btn').forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-  }));
 
   /* ============================================================
      MOBILE DRIVER VIEW
