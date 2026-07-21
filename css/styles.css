@@ -487,7 +487,8 @@ body.theme-dark .ai-suggest-box b { color: #6EE7B7; }
 .compare-bar-col .val { font-family: var(--font-mono); font-weight: 700; margin-bottom: 8px; }
 .compare-bar-col .lbl { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
 
-.heat-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.heat-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; cursor: pointer; padding: 6px 8px; border-radius: 8px; margin-left: -8px; margin-right: -8px; transition: background .15s; }
+.heat-row:hover { background: var(--navy-tint); }
 .heat-row .name { width: 130px; font-size: 13px; font-weight: 600; }
 .heat-track { flex: 1; height: 20px; border-radius: 6px; background: var(--soft-3); overflow: hidden; }
 .heat-fill { height: 100%; border-radius: 6px; background: linear-gradient(90deg, var(--amber), var(--red)); transition: width 1s ease; }
