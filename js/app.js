@@ -87,6 +87,16 @@
     $('#topbarTitle').textContent = t[0];
     $('#topbarDate').textContent = t[1];
     window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    // Leaflet maps render blank if initialized while their container is display:none.
+    // Fix: (re)validate size once the view is actually visible.
+    if (name === 'routes' && resultsMap) {
+      setTimeout(() => resultsMap.invalidateSize(), 80);
+    }
+    if (name === 'map') {
+      if (!dailyMap) initDailyMap();
+      else setTimeout(() => dailyMap.invalidateSize(), 80);
+    }
   }
 
   /* ---------------- TOOLTIP HELP ---------------- */
@@ -210,6 +220,22 @@
      RESULTS / ROUTES VIEW  (map + driver cards + reasoning)
      ============================================================ */
   let resultsMap = null;
+  let dailyMap = null;
+  function initDailyMap() {
+    dailyMap = L.map('dailyMap').setView([D.CENTER.lat, D.CENTER.lng], 11);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors', maxZoom: 17 }).addTo(dailyMap);
+    D.ROUTES.forEach(r => {
+      r.stops.forEach(s => {
+        L.circleMarker([s.lat, s.lng], { radius: 5, color: r.driver.color, fillColor: r.driver.color, fillOpacity: 0.85, weight: 1.5 })
+          .bindPopup(`<b>${s.customer}</b><br>${s.address}<br>${s.phone}<br>ETA ${s.deliveryTime}<br>Cart qty: ${s.qty}`)
+          .addTo(dailyMap);
+      });
+    });
+    D.HUBS.forEach(h => {
+      L.circleMarker([h.lat, h.lng], { radius: 9, color: '#0A2647', weight: 2, fillColor: '#fff', fillOpacity: 1 }).bindPopup(`<b>${h.name}</b>`).addTo(dailyMap);
+    });
+    setTimeout(() => dailyMap.invalidateSize(), 80);
+  }
   let routeLayers = [];
   let activeDriverId = null;
 
@@ -364,24 +390,52 @@
     const r = D.ROUTES.find(x => x.driver.id === driverId);
     const d = D.DRIVERS.find(x => x.id === driverId);
     if (!d) return;
-    const weekMiles = [34, 41, 29, 38, r ? r.mileage : 33, 0, 0];
-    openDetailModal(`${d.name} \u2014 Driver Profile`, `
+    const weekMiles = [34, 41, 29, 38, r ? r.mileage : 33];
+    openDetailModal(`${d.fullName} \u2014 Driver Profile`, `
       <div style="display:flex;align-items:center;gap:16px">
         <div style="font-size:40px">${d.avatar}</div>
-        <div>
-          <div style="font-weight:700;font-size:18px">${d.name}</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:18px">${d.fullName}</div>
           <div style="color:var(--muted);font-size:13px">Hub ${d.hub} \u00b7 <span class="pill ${d.status === 'Active' ? 'pill-emerald' : 'pill-amber'}" style="margin-left:4px"><span class="pill-dot"></span>${d.status}</span></div>
         </div>
+        <div style="text-align:right">
+          <div style="font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--emphasis)">\u2605 ${d.rating}</div>
+          <div style="font-size:11px;color:var(--muted)">driver rating</div>
+        </div>
       </div>
-      <div class="grid grid-3" style="margin-top:20px">
-        <div class="card card-pad"><div class="stat-label">Today's Mileage</div><div class="stat-value" style="font-size:22px">${r ? r.mileage : '\u2014'} mi</div></div>
-        <div class="card card-pad"><div class="stat-label">Utilization</div><div class="stat-value" style="font-size:22px">${r ? r.utilization : '\u2014'}%</div></div>
-        <div class="card card-pad"><div class="stat-label">Trailer Today</div><div class="stat-value" style="font-size:22px">${r ? r.trailer : '\u2014'}</div></div>
+
+      <div class="grid grid-3" style="margin-top:18px">
+        <div class="card card-pad"><div class="stat-label">Phone</div><div style="font-family:var(--font-mono);font-size:13px;margin-top:6px">${d.phone}</div></div>
+        <div class="card card-pad"><div class="stat-label">Email</div><div style="font-family:var(--font-mono);font-size:12px;margin-top:6px;word-break:break-all">${d.email}</div></div>
+        <div class="card card-pad"><div class="stat-label">Employed Since</div><div style="font-family:var(--font-mono);font-size:13px;margin-top:6px">${d.hireDate} \u00b7 ${d.tenureYears} yr${d.tenureYears===1?'':'s'}</div></div>
+        <div class="card card-pad"><div class="stat-label">Vehicle</div><div style="font-size:13px;margin-top:6px;font-weight:600">${d.vehicle}</div></div>
+        <div class="card card-pad"><div class="stat-label">Plate</div><div style="font-family:var(--font-mono);font-size:13px;margin-top:6px">${d.plate}</div></div>
+        <div class="card card-pad"><div class="stat-label">Preferred Trailer</div><div style="font-size:13px;margin-top:6px;font-weight:600">${d.preferredTrailer}</div></div>
       </div>
+
+      <div class="grid grid-3" style="margin-top:14px">
+        <div class="card card-pad"><div class="stat-label">Total Deliveries</div><div class="stat-value" style="font-size:20px">${d.totalDeliveries.toLocaleString()}</div></div>
+        <div class="card card-pad"><div class="stat-label">On-Time Rate</div><div class="stat-value" style="font-size:20px">${d.onTimeRate}%</div></div>
+        <div class="card card-pad"><div class="stat-label">Safety Score</div><div class="stat-value" style="font-size:20px">${d.safetyScore}/100</div></div>
+      </div>
+
+      <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Certifications</h3></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${d.certifications.map(c => `<span class="pill pill-blue">\u2713 ${c}</span>`).join('')}
+      </div>
+
+      <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Today's Assignment</h3></div>
+      <div class="grid grid-3">
+        <div class="card card-pad"><div class="stat-label">Mileage</div><div class="stat-value" style="font-size:20px">${r ? r.mileage : '\u2014'} mi</div></div>
+        <div class="card card-pad"><div class="stat-label">Utilization</div><div class="stat-value" style="font-size:20px">${r ? r.utilization : '\u2014'}%</div></div>
+        <div class="card card-pad"><div class="stat-label">Trailer Today</div><div class="stat-value" style="font-size:20px">${r ? r.trailer : '\u2014'}</div></div>
+      </div>
+
       <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Mileage \u2014 Last 5 Weekdays</h3></div>
       <div class="compare-bars" style="height:120px;gap:14px">
-        ${weekMiles.slice(0,5).map((m,i) => `<div class="compare-bar-col"><div class="val" style="font-size:11px">${m}</div><div class="compare-bar ${i===4?'after':'before'}" style="height:${Math.round(m/45*100)}%;width:40px"></div><div class="lbl" style="font-size:10.5px">${['Mon','Tue','Wed','Thu','Today'][i]}</div></div>`).join('')}
+        ${weekMiles.map((m,i) => `<div class="compare-bar-col"><div class="val" style="font-size:11px">${m}</div><div class="compare-bar ${i===4?'after':'before'}" style="height:${Math.round(m/45*100)}%;width:40px"></div><div class="lbl" style="font-size:10.5px">${['Mon','Tue','Wed','Thu','Today'][i]}</div></div>`).join('')}
       </div>
+
       ${r ? `<div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Today's Stops</h3></div>
       <div class="stop-list" style="max-height:220px">
         ${r.stops.map((s,idx) => `<div class="stop-row"><div class="num">${idx+1}</div><div class="info"><b>${s.customer}</b><span>${s.address} \u00b7 ETA ${s.deliveryTime}</span></div></div>`).join('')}
@@ -454,6 +508,7 @@
   window.RP_openDriverModal = openDriverModal;
   window.RP_openHubModal = openHubModal;
   window.RP_openBookingModal = openBookingModal;
+  window.RP_openDetailModal = openDetailModal;
 
   /* ============================================================
      TRAILER OPTIMIZER
@@ -649,14 +704,31 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
   /* ============================================================
      SAMPLE DATASET
      ============================================================ */
+  let datasetSort = { col: 'id', dir: 1 };
   function renderDataset(filter) {
-    const rows = D.BOOKINGS.filter(b => !filter || (b.customer + b.address + b.neighborhood).toLowerCase().includes(filter.toLowerCase())).slice(0, 60);
-    $('#datasetCount').textContent = `${rows.length} of ${D.BOOKINGS.length} rows shown`;
+    let rows = D.BOOKINGS.filter(b => !filter || (b.customer + b.address + b.neighborhood).toLowerCase().includes(filter.toLowerCase()));
+    const col = datasetSort.col, dir = datasetSort.dir;
+    rows = rows.slice().sort((a, b) => {
+      let av = a[col], bv = b[col];
+      if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+      return av < bv ? -1 * dir : av > bv ? 1 * dir : 0;
+    });
+    const shown = rows.slice(0, 60);
+    $('#datasetCount').textContent = `${shown.length} of ${rows.length} rows shown (${D.BOOKINGS.length} total)`;
+    const arrow = (c) => c === col ? (dir === 1 ? ' \u25B2' : ' \u25BC') : '';
     $('#datasetTable').innerHTML = `
       <table class="data-table">
-        <thead><tr><th>ID</th><th>Customer</th><th>Address</th><th>Delivery</th><th>Pickup</th><th>Qty</th><th>Priority</th></tr></thead>
+        <thead><tr>
+          <th data-sort="id" class="sortable">ID${arrow('id')}</th>
+          <th data-sort="customer" class="sortable">Customer${arrow('customer')}</th>
+          <th data-sort="address" class="sortable">Address${arrow('address')}</th>
+          <th data-sort="deliveryTime" class="sortable">Delivery${arrow('deliveryTime')}</th>
+          <th data-sort="pickupTime" class="sortable">Pickup${arrow('pickupTime')}</th>
+          <th data-sort="qty" class="sortable">Qty${arrow('qty')}</th>
+          <th data-sort="priority" class="sortable">Priority${arrow('priority')}</th>
+        </tr></thead>
         <tbody>
-          ${rows.map(b => `<tr class="row-clickable" data-booking-id="${b.id}">
+          ${shown.map(b => `<tr class="row-clickable" data-booking-id="${b.id}">
             <td>${b.id}</td><td style="font-family:var(--font-body);font-weight:600">${b.customer}</td>
             <td>${b.address}</td><td>${b.deliveryTime}</td><td>${b.pickupTime}</td><td>${b.qty}</td>
             <td><span class="badge badge-${b.priority.toLowerCase()}">${b.priority}</span></td>
@@ -664,6 +736,12 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
         </tbody>
       </table>`;
     $$('#datasetTable tr[data-booking-id]').forEach(tr => tr.addEventListener('click', () => openBookingModal(tr.dataset.bookingId)));
+    $$('#datasetTable th.sortable').forEach(th => th.addEventListener('click', () => {
+      const c = th.dataset.sort;
+      datasetSort.dir = (datasetSort.col === c) ? -datasetSort.dir : 1;
+      datasetSort.col = c;
+      renderDataset($('#datasetSearch').value);
+    }));
   }
   $('#datasetSearch').addEventListener('input', (e) => renderDataset(e.target.value));
 
@@ -767,6 +845,24 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
     }, 1100);
   });
 
-  $$('[data-export]').forEach(btn => btn.addEventListener('click', () => showToast(`Preparing ${btn.dataset.export} export\u2026 ready for download.`)));
+  $$('[data-export]').forEach(btn => btn.addEventListener('click', () => showToast(`Simulating ${btn.dataset.export}\u2026 (no live SMS gateway in this prototype)`)));
+
+  const exportPdfBtn = $('#exportRoutePdfBtn');
+  if (exportPdfBtn) exportPdfBtn.addEventListener('click', () => { showToast('Generating PDF route sheets\u2026'); window.RP_EXPORT.routeSheetsPDF(); });
+  const exportCsvBtn = $('#exportRouteCsvBtn');
+  if (exportCsvBtn) exportCsvBtn.addEventListener('click', () => { window.RP_EXPORT.routesCSV(); showToast('CSV downloaded.'); });
+  const exportExcelBtn = $('#exportRouteExcelBtn');
+  if (exportExcelBtn) exportExcelBtn.addEventListener('click', () => { showToast('Building Excel workbook\u2026'); window.RP_EXPORT.bookingsExcel(); });
+
+  const reportsPdfBtn = $('#reportsPdfBtn');
+  if (reportsPdfBtn) reportsPdfBtn.addEventListener('click', () => { showToast('Generating PDF report\u2026'); window.RP_EXPORT.reportsPDF(); });
+  const reportsExcelBtn = $('#reportsExcelBtn');
+  if (reportsExcelBtn) reportsExcelBtn.addEventListener('click', () => { showToast('Building Excel workbook\u2026'); window.RP_EXPORT.reportsExcel(); });
+  const reportsPptxBtn = $('#reportsPptxBtn');
+  if (reportsPptxBtn) reportsPptxBtn.addEventListener('click', () => { showToast('Building PowerPoint deck\u2026'); window.RP_EXPORT.reportsPPTX(); });
+  const bookingsCsvBtn = $('#bookingsCsvBtn');
+  if (bookingsCsvBtn) bookingsCsvBtn.addEventListener('click', () => { window.RP_EXPORT.bookingsCSV(); showToast('CSV downloaded.'); });
+  const bookingsExcelBtn = $('#bookingsExcelBtn');
+  if (bookingsExcelBtn) bookingsExcelBtn.addEventListener('click', () => { showToast('Building Excel workbook\u2026'); window.RP_EXPORT.bookingsExcel(); });
 
 })();
