@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/styles.css?v=3">
+<link rel="stylesheet" href="css/styles.css?v=4">
 </head>
 <body>
 
@@ -402,9 +402,14 @@
       <div class="phone-frame">
         <div class="phone-notch"></div>
         <div class="phone-screen">
+          <div class="phone-devicebar">
+            <span id="phoneClock">9:41</span>
+            <span class="phone-devicebar-icons">📶 📡 🔋</span>
+          </div>
           <div class="phone-status">
             <div class="greet">Good Morning, John</div>
-            <div class="today">Today's Route · Hub A · 4 stops</div>
+            <div class="today">Today's Route · Hub A · <span id="phoneStopCount">4</span> stops</div>
+            <div class="phone-progress-track"><div class="phone-progress-fill" id="phoneProgressFill" style="width:0%"></div></div>
           </div>
           <div class="phone-body" id="phoneStops"></div>
           <div class="swipe-btn" id="swipeStartBtn">START ROUTE →</div>
@@ -455,9 +460,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
-<script src="js/data.js?v=3"></script>
-<script src="js/export.js?v=3"></script>
-<script src="js/app.js?v=3"></script>
+<script src="js/data.js?v=4"></script>
+<script src="js/export.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
 <script>
   // ---- fill in views that reuse data.js directly (drivers/hubs/history/daily map) ----
   document.addEventListener('DOMContentLoaded', () => {
