@@ -517,21 +517,35 @@
   /* ============================================================
      TRAILER OPTIMIZER
      ============================================================ */
+  let trailerSample = [
+    { id: 'Trailer 1', type: 'Double', driver: 'John', carts: 6, eff: 95 },
+    { id: 'Trailer 2', type: 'Single', driver: 'Alex', carts: 2, eff: 66 },
+    { id: 'Trailer 3', type: 'Double', driver: 'David', carts: 5, eff: 90 },
+  ];
   function renderTrailerView() {
-    const sample = [
-      { id: 'Trailer 1', type: 'Double', driver: 'John', carts: 6, eff: 95 },
-      { id: 'Trailer 2', type: 'Single', driver: 'Alex', carts: 2, eff: 66 },
-      { id: 'Trailer 3', type: 'Double', driver: 'David', carts: 5, eff: 90 },
-    ];
-    $('#trailerCards').innerHTML = sample.map((t, i) => `
-      <div class="card trailer-card hoverable" data-trailer-i="${i}">
+    $('#trailerCards').innerHTML = trailerSample.map((t, i) => `
+      <div class="card trailer-card hoverable" data-trailer-i="${i}" title="Click for full trailer detail">
         <div class="th"><span class="tname">${t.id}</span><span class="pill ${t.type === 'Double' ? 'pill-blue' : 'pill-emerald'}">${t.type}</span></div>
         <div style="font-size:12.5px;color:var(--muted);margin-top:8px">Driver ${t.driver} \u00b7 ${t.carts} carts loaded</div>
         <div class="eff-bar-track"><div class="eff-bar-fill" style="width:${t.eff}%"></div></div>
-        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px"><span>Efficiency</span><span style="font-weight:700;color:var(--navy-dark)">${t.eff}%</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11.5px;color:var(--muted);margin-top:4px"><span>Efficiency</span><span style="font-weight:700;color:var(--emphasis)">${t.eff}%</span></div>
       </div>
     `).join('');
-    $$('[data-trailer-i]').forEach(card => card.addEventListener('click', () => openTrailerModal(sample[+card.dataset.trailerI])));
+    $$('[data-trailer-i]').forEach(card => card.addEventListener('click', () => openTrailerModal(trailerSample[+card.dataset.trailerI])));
+
+    const applyBtn = $('#trailerApplyBtn');
+    if (applyBtn) {
+      applyBtn.onclick = () => {
+        trailerSample[1].eff = 92; // Trailer 2 (Alex) picks up Booking #48
+        trailerSample[1].carts = 3;
+        renderTrailerView();
+        const box = document.querySelector('.ai-suggest-box');
+        if (box) {
+          box.innerHTML = `<div class="ic">\u2713</div><div style="flex:1"><b>Applied.</b> Booking #48 moved to Driver Alex \u2014 Trailer 2 efficiency is now <b>92%</b>.</div>`;
+        }
+        showToast('Booking #48 reassigned to Driver Alex.');
+      };
+    }
   }
 
   /* ============================================================
@@ -564,8 +578,8 @@
      ============================================================ */
   function renderDeadheadView() {
     $('#deadheadBars').innerHTML = `
-      <div class="compare-bar-col"><div class="val">82 mi</div><div class="compare-bar before" style="height:0"></div><div class="lbl">Current Route</div></div>
-      <div class="compare-bar-col"><div class="val">58 mi</div><div class="compare-bar after" style="height:0"></div><div class="lbl">Optimized Route</div></div>
+      <div class="compare-bar-col"><div class="val">82 mi</div><div class="compare-bar before" style="height:0" title="Current route: 82 miles including 24 miles of empty deadhead travel between stops"></div><div class="lbl">Current Route</div></div>
+      <div class="compare-bar-col"><div class="val">58 mi</div><div class="compare-bar after" style="height:0" title="Optimized route: 58 miles \u2014 stops clustered by proximity to cut deadhead by 24 miles (29%)"></div><div class="lbl">Optimized Route</div></div>
     `;
     requestAnimationFrame(() => {
       setTimeout(() => {
@@ -573,6 +587,22 @@
         $$('.compare-bar')[1].style.height = '58%';
       }, 150);
     });
+    $$('#deadheadBars .compare-bar').forEach(bar => bar.addEventListener('click', () => {
+      const isAfter = bar.classList.contains('after');
+      openDetailModal(isAfter ? 'Optimized Route Breakdown' : 'Current Route Breakdown', isAfter ? `
+        <p style="color:var(--muted);font-size:13.5px">RoutePilot re-sequenced today's stops by proximity instead of strict booking order.</p>
+        <div class="grid grid-3" style="margin-top:14px">
+          <div class="card card-pad"><div class="stat-label">Total Mileage</div><div class="stat-value" style="font-size:20px">58 mi</div></div>
+          <div class="card card-pad"><div class="stat-label">Deadhead Miles</div><div class="stat-value" style="font-size:20px">10 mi</div></div>
+          <div class="card card-pad"><div class="stat-label">Deadhead %</div><div class="stat-value" style="font-size:20px">17%</div></div>
+        </div>` : `
+        <p style="color:var(--muted);font-size:13.5px">The unoptimized route follows bookings in the order they were received, without clustering by location.</p>
+        <div class="grid grid-3" style="margin-top:14px">
+          <div class="card card-pad"><div class="stat-label">Total Mileage</div><div class="stat-value" style="font-size:20px">82 mi</div></div>
+          <div class="card card-pad"><div class="stat-label">Deadhead Miles</div><div class="stat-value" style="font-size:20px">34 mi</div></div>
+          <div class="card card-pad"><div class="stat-label">Deadhead %</div><div class="stat-value" style="font-size:20px">41%</div></div>
+        </div>`);
+    }));
   }
 
   /* ============================================================
