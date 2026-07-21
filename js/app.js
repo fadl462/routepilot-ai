@@ -40,6 +40,7 @@
     themeBtn.textContent = mode === 'dark' ? '☀️' : '🌙';
     themeBtn.title = mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode';
     localStorage.setItem('rp-theme', mode);
+    if (window.RP_redrawReportsChart) window.RP_redrawReportsChart();
   }
   applyTheme(localStorage.getItem('rp-theme') === 'dark' ? 'dark' : 'light');
   themeBtn.addEventListener('click', () => {
@@ -609,17 +610,37 @@
      HEATMAP
      ============================================================ */
   function renderHeatmapView() {
-    const counts = D.NEIGHBORHOODS.map(n => ({ name: n.name, count: D.BOOKINGS.filter(b => b.neighborhood === n.name).length }))
-      .sort((a, b) => b.count - a.count);
+    const counts = D.NEIGHBORHOODS.map(n => ({
+      name: n.name,
+      count: D.BOOKINGS.filter(b => b.neighborhood === n.name).length,
+      bookings: D.BOOKINGS.filter(b => b.neighborhood === n.name),
+    })).sort((a, b) => b.count - a.count);
     const max = Math.max(...counts.map(c => c.count));
-    $('#heatmapRows').innerHTML = counts.map(c => `
-      <div class="heat-row">
+    $('#heatmapRows').innerHTML = counts.map((c, i) => `
+      <div class="heat-row" data-heat-i="${i}" title="Click for neighborhood detail">
         <div class="name">${c.name}</div>
         <div class="heat-track"><div class="heat-fill" style="width:0%" data-w="${(c.count / max * 100).toFixed(0)}"></div></div>
         <div class="count">${c.count}</div>
       </div>
     `).join('');
     setTimeout(() => $$('.heat-fill').forEach(f => f.style.width = f.dataset.w + '%'), 200);
+
+    $$('#heatmapRows [data-heat-i]').forEach(row => row.addEventListener('click', () => {
+      const c = counts[+row.dataset.heatI];
+      const totalCarts = c.bookings.reduce((s, b) => s + b.qty, 0);
+      const vipCount = c.bookings.filter(b => b.priority === 'VIP').length;
+      openDetailModal(`${c.name} \u2014 Demand Detail`, `
+        <div class="grid grid-3">
+          <div class="card card-pad"><div class="stat-label">Bookings Today</div><div class="stat-value" style="font-size:22px">${c.count}</div></div>
+          <div class="card card-pad"><div class="stat-label">Golf Carts</div><div class="stat-value" style="font-size:22px">${totalCarts}</div></div>
+          <div class="card card-pad"><div class="stat-label">VIP Bookings</div><div class="stat-value" style="font-size:22px">${vipCount}</div></div>
+        </div>
+        <div class="section-head" style="margin:20px 0 10px"><h3 style="font-size:14px">Sample Bookings in ${c.name}</h3></div>
+        <div class="stop-list" style="max-height:220px">
+          ${c.bookings.slice(0, 8).map((b, idx) => `<div class="stop-row"><div class="num">${idx + 1}</div><div class="info"><b>${b.customer}</b><span>${b.address} \u00b7 ${b.deliveryTime} \u00b7 ${b.qty} carts</span></div></div>`).join('')}
+        </div>
+      `);
+    }));
   }
 
   /* ============================================================
@@ -783,6 +804,15 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
      REPORTS (Chart.js)
      ============================================================ */
   let reportsChartInstance = null;
+  let reportsCurrentRange = 'weekly';
+  function chartThemeColors() {
+    const dark = document.body.classList.contains('theme-dark');
+    return {
+      tick: dark ? '#93A2BD' : '#667085',
+      grid: dark ? 'rgba(255,255,255,0.06)' : 'rgba(16,24,40,0.06)',
+      legend: dark ? '#E7EDF7' : '#101828',
+    };
+  }
   function renderReports() {
     const datasets = {
       weekly: {
@@ -797,7 +827,9 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
       }
     };
     function draw(range) {
+      reportsCurrentRange = range;
       const d = datasets[range];
+      const colors = chartThemeColors();
       if (reportsChartInstance) reportsChartInstance.destroy();
       reportsChartInstance = new Chart($('#reportsChart').getContext('2d'), {
         type: 'line',
@@ -813,32 +845,51 @@ Traffic notes:      <span class="var">{{Traffic}}</span>
           interaction: { mode: 'index', intersect: false },
           hover: { mode: 'index', intersect: false },
           plugins: {
-            legend: { position: 'bottom' },
-            tooltip: { enabled: true, mode: 'index', intersect: false, backgroundColor: '#0A2647', padding: 10, cornerRadius: 8 },
+            legend: { position: 'bottom', labels: { color: colors.legend } },
+            tooltip: { enabled: true, mode: 'index', intersect: false, backgroundColor: '#0A2647', titleColor: '#fff', bodyColor: '#fff', padding: 10, cornerRadius: 8 },
           },
-          scales: { y: { beginAtZero: true } },
+          scales: {
+            y: { beginAtZero: true, ticks: { color: colors.tick }, grid: { color: colors.grid } },
+            x: { ticks: { color: colors.tick }, grid: { color: colors.grid } },
+          },
           elements: { point: { radius: 4, hoverRadius: 7, hitRadius: 12 } },
           onHover: (evt, elements) => { evt.native.target.style.cursor = elements.length ? 'pointer' : 'default'; },
         }
       });
     }
     draw('weekly');
+    window.RP_redrawReportsChart = () => draw(reportsCurrentRange);
     $$('#view-reports .tab-btn').forEach(tab => tab.addEventListener('click', () => {
       $$('#view-reports .tab-btn').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       draw(tab.textContent.toLowerCase());
     }));
 
-    $('#reportTiles').innerHTML = [
-      ['Driver Productivity', '94%', 'up'], ['Trailer Utilization', '91%', 'up'],
-      ['Late Deliveries', '0.8%', 'down'], ['Customer Satisfaction', '4.9 / 5', 'up'],
-      ['Conflict Frequency', '1.1%', 'down'], ['Avg Dispatch Prep Time', '14 min', 'down'],
-    ].map(([l, v, dir]) => `
-      <div class="card card-pad">
+    const tileData = [
+      ['Driver Productivity', '94%', 'up', [88, 90, 91, 93, 94]],
+      ['Trailer Utilization', '91%', 'up', [82, 85, 87, 89, 91]],
+      ['Late Deliveries', '0.8%', 'down', [2.1, 1.6, 1.2, 1.0, 0.8]],
+      ['Customer Satisfaction', '4.9 / 5', 'up', [4.6, 4.7, 4.7, 4.8, 4.9]],
+      ['Conflict Frequency', '1.1%', 'down', [2.4, 2.0, 1.6, 1.3, 1.1]],
+      ['Avg Dispatch Prep Time', '14 min', 'down', [22, 19, 17, 15, 14]],
+    ];
+    $('#reportTiles').innerHTML = tileData.map(([l, v, dir], i) => `
+      <div class="card card-pad hoverable" data-tile-i="${i}">
         <div class="stat-label">${l}</div>
         <div class="stat-value" style="font-size:24px">${v}</div>
         <div class="stat-sub ${dir === 'down' ? '' : ''}">${dir === 'up' ? '\u2191 trending up' : '\u2193 trending down (good)'}</div>
       </div>`).join('');
+    $$('#reportTiles [data-tile-i]').forEach(card => card.addEventListener('click', () => {
+      const [label, value, dir, trend] = tileData[+card.dataset.tileI];
+      const maxV = Math.max(...trend);
+      openDetailModal(`${label} \u2014 5-Week Trend`, `
+        <div class="card card-pad" style="margin-bottom:16px"><div class="stat-label">Current</div><div class="stat-value" style="font-size:26px">${value}</div>
+          <div class="stat-sub">${dir === 'up' ? '\u2191 trending up over the last 5 weeks' : '\u2193 trending down \u2014 improving'}</div></div>
+        <div class="compare-bars" style="height:140px;gap:16px">
+          ${trend.map((v2, idx) => `<div class="compare-bar-col"><div class="val" style="font-size:11px">${v2}</div><div class="compare-bar ${idx === trend.length - 1 ? 'after' : 'before'}" style="height:${Math.round(v2 / maxV * 100)}%;width:44px;cursor:default"></div><div class="lbl" style="font-size:10.5px">Wk ${idx + 1}</div></div>`).join('')}
+        </div>
+      `);
+    }));
   }
 
   /* ============================================================
