@@ -455,7 +455,10 @@ textarea.paste-area:focus { border-color: var(--blue); outline: none; box-shadow
 .trailer-card .th .tname { font-weight: 700; font-size: 14px; }
 .eff-bar-track { height: 8px; border-radius: 5px; background: var(--soft-3); margin-top: 10px; overflow: hidden; }
 .eff-bar-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--blue), var(--emerald)); }
-.ai-suggest-box { display: flex; align-items: center; gap: 12px; background: var(--emerald-tint); border: 1px solid #B7EDD4; border-radius: 12px; padding: 14px 16px; margin-top: 18px; }
+.ai-suggest-box { display: flex; align-items: center; gap: 12px; background: var(--emerald-tint); border: 1px solid #B7EDD4; border-radius: 12px; padding: 14px 16px; margin-top: 18px; color: #065F46; }
+.ai-suggest-box b { color: #065F46; }
+body.theme-dark .ai-suggest-box { background: rgba(16,185,129,0.14); border-color: rgba(16,185,129,0.4); color: var(--ink); }
+body.theme-dark .ai-suggest-box b { color: #6EE7B7; }
 .ai-suggest-box .ic { font-size: 20px; }
 
 /* ============================================================
@@ -477,7 +480,8 @@ textarea.paste-area:focus { border-color: var(--blue); outline: none; box-shadow
    ============================================================ */
 .compare-bars { display: flex; align-items: flex-end; gap: 40px; height: 220px; padding: 20px 10px 0; }
 .compare-bar-col { flex: 1; text-align: center; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; height: 100%; }
-.compare-bar { width: 74px; border-radius: 8px 8px 0 0; transition: height 1s cubic-bezier(.2,.8,.2,1); }
+.compare-bar { width: 74px; border-radius: 8px 8px 0 0; transition: height 1s cubic-bezier(.2,.8,.2,1), opacity .15s; cursor: pointer; }
+.compare-bar:hover { opacity: 0.8; }
 .compare-bar.before { background: var(--faint); }
 .compare-bar.after { background: linear-gradient(180deg, var(--emerald), #0d9a6e); }
 .compare-bar-col .val { font-family: var(--font-mono); font-weight: 700; margin-bottom: 8px; }
