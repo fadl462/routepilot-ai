@@ -61,6 +61,23 @@
   wireDropdown('helpBtn', 'helpPanel');
   document.addEventListener('click', () => $$('.dropdown-panel').forEach(p => p.classList.remove('open')));
 
+  /* ---------------- MOBILE NAV DRAWER ---------------- */
+  const sidebarEl = $('.sidebar');
+  const backdropEl = $('#sidebarBackdrop');
+  function openMobileDrawer() {
+    sidebarEl.classList.add('mobile-open');
+    backdropEl.classList.add('active');
+  }
+  function closeMobileDrawer() {
+    sidebarEl.classList.remove('mobile-open');
+    backdropEl.classList.remove('active');
+  }
+  const hamburgerBtn = $('#hamburgerBtn');
+  if (hamburgerBtn) hamburgerBtn.addEventListener('click', () => {
+    sidebarEl.classList.contains('mobile-open') ? closeMobileDrawer() : openMobileDrawer();
+  });
+  if (backdropEl) backdropEl.addEventListener('click', closeMobileDrawer);
+
   /* ---------------- NAVIGATION ---------------- */
   $$('.nav-item[data-view]').forEach(item => {
     item.addEventListener('click', () => switchView(item.dataset.view));
@@ -68,6 +85,7 @@
   function switchView(name) {
     $$('.nav-item[data-view]').forEach(i => i.classList.toggle('active', i.dataset.view === name));
     $$('.view').forEach(v => v.classList.toggle('active', v.id === 'view-' + name));
+    closeMobileDrawer();
     const titles = {
       dashboard: ['Dashboard', 'Live snapshot of today\u2019s dispatch operation'],
       optimizer: ['Daily Optimizer', 'Feed in today\u2019s bookings and let RoutePilot build the plan'],
