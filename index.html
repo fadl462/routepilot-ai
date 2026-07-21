@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/styles.css">
+<link rel="stylesheet" href="css/styles.css?v=3">
 </head>
 <body>
 
@@ -225,9 +225,9 @@
 
       <div class="section-head"><h3>Export</h3></div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn btn-ghost" data-export="PDF">⬇ PDF Route Sheets</button>
-        <button class="btn btn-ghost" data-export="CSV">⬇ CSV</button>
-        <button class="btn btn-ghost" data-export="Excel">⬇ Excel</button>
+        <button class="btn btn-ghost" id="exportRoutePdfBtn">⬇ PDF Route Sheets</button>
+        <button class="btn btn-ghost" id="exportRouteCsvBtn">⬇ CSV</button>
+        <button class="btn btn-ghost" id="exportRouteExcelBtn">⬇ Excel</button>
         <button class="btn btn-ghost" data-export="Driver SMS">💬 Send Driver SMS</button>
         <button class="btn btn-ghost" data-export="Customer ETA">💬 Send Customer ETA Messages</button>
       </div>
@@ -235,6 +235,15 @@
 
     <!-- ===================== DRIVERS ===================== -->
     <section class="view" id="view-drivers">
+      <div class="dataset-toolbar">
+        <input type="text" id="driversSearch" placeholder="Search drivers by name or hub…">
+        <select id="driversStatusFilter" style="padding:10px 12px;border-radius:9px;border:1.5px solid var(--border);font-size:13px">
+          <option value="All">All statuses</option>
+          <option value="Active">Active</option>
+          <option value="On Call">On Call</option>
+        </select>
+        <span class="hint" id="driversCount" style="color:var(--muted);font-size:12.5px;margin-left:auto"></span>
+      </div>
       <div class="grid grid-3" id="driversGrid"></div>
     </section>
 
@@ -275,6 +284,10 @@
       <div class="dataset-toolbar">
         <input type="text" id="datasetSearch" placeholder="Search by customer, address, or neighborhood…">
         <span class="hint" id="datasetCount" style="color:var(--muted);font-size:12.5px"></span>
+        <div style="display:flex;gap:8px;margin-left:auto">
+          <button class="btn btn-ghost btn-sm" id="bookingsCsvBtn">⬇ CSV</button>
+          <button class="btn btn-ghost btn-sm" id="bookingsExcelBtn">⬇ Excel</button>
+        </div>
       </div>
       <div class="card table-wrap" id="datasetTable"></div>
     </section>
@@ -315,11 +328,18 @@
 
     <!-- ===================== REPORTS ===================== -->
     <section class="view" id="view-reports">
-      <div class="tab-row">
-        <button class="tab-btn active">Weekly</button>
-        <button class="tab-btn">Monthly</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div class="tab-row">
+          <button class="tab-btn active">Weekly</button>
+          <button class="tab-btn">Monthly</button>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-ghost btn-sm" id="reportsPdfBtn">⬇ PDF Report</button>
+          <button class="btn btn-ghost btn-sm" id="reportsExcelBtn">⬇ Excel Workbook</button>
+          <button class="btn btn-ghost btn-sm" id="reportsPptxBtn">⬇ PowerPoint Summary</button>
+        </div>
       </div>
-      <div class="card card-pad"><canvas id="reportsChart" height="90"></canvas></div>
+      <div class="card card-pad" style="margin-top:16px"><canvas id="reportsChart" height="90"></canvas></div>
       <div class="section-head"><h3>Fleet Metrics</h3></div>
       <div class="grid grid-3" id="reportTiles"></div>
     </section>
@@ -431,26 +451,47 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script src="js/data.js"></script>
-<script src="js/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
+<script src="js/data.js?v=3"></script>
+<script src="js/export.js?v=3"></script>
+<script src="js/app.js?v=3"></script>
 <script>
   // ---- fill in views that reuse data.js directly (drivers/hubs/history/daily map) ----
   document.addEventListener('DOMContentLoaded', () => {
     const D = window.RP_DATA;
 
-    document.getElementById('driversGrid').innerHTML = D.DRIVERS.map(d => `
-      <div class="card card-pad hoverable" data-driver-id="${d.id}">
-        <div style="display:flex;align-items:center;gap:12px">
-          <span style="font-size:26px">${d.avatar}</span>
-          <div>
-            <div style="font-weight:700;font-size:14.5px">${d.name}</div>
-            <div style="font-size:12px;color:var(--muted)">Hub ${d.hub}</div>
+    function renderDriversGrid(filter, statusFilter) {
+      const rows = D.DRIVERS.filter(d =>
+        (!filter || (d.fullName + d.hub).toLowerCase().includes(filter.toLowerCase())) &&
+        (!statusFilter || statusFilter === 'All' || d.status === statusFilter)
+      );
+      document.getElementById('driversGrid').innerHTML = rows.map(d => `
+        <div class="card card-pad hoverable" data-driver-id="${d.id}">
+          <div style="display:flex;align-items:center;gap:12px">
+            <span style="font-size:26px">${d.avatar}</span>
+            <div style="flex:1">
+              <div style="font-weight:700;font-size:14.5px">${d.fullName}</div>
+              <div style="font-size:12px;color:var(--muted)">Hub ${d.hub} \u00b7 \u2605 ${d.rating} \u00b7 ${d.tenureYears} yr${d.tenureYears===1?'':'s'}</div>
+            </div>
+            <span class="pill ${d.status === 'Active' ? 'pill-emerald' : 'pill-amber'}"><span class="pill-dot"></span>${d.status}</span>
           </div>
-          <span class="pill ${d.status === 'Active' ? 'pill-emerald' : 'pill-amber'}" style="margin-left:auto"><span class="pill-dot"></span>${d.status}</span>
-        </div>
-      </div>`).join('');
-    document.querySelectorAll('#driversGrid [data-driver-id]').forEach(card =>
-      card.addEventListener('click', () => window.RP_openDriverModal(card.dataset.driverId)));
+          <div style="display:flex;gap:14px;margin-top:12px;font-size:11.5px;color:var(--muted)">
+            <div>${d.totalDeliveries.toLocaleString()} deliveries</div>
+            <div>${d.onTimeRate}% on-time</div>
+          </div>
+        </div>`).join('');
+      document.querySelectorAll('#driversGrid [data-driver-id]').forEach(card =>
+        card.addEventListener('click', () => window.RP_openDriverModal(card.dataset.driverId)));
+      document.getElementById('driversCount').textContent = `${rows.length} of ${D.DRIVERS.length} drivers`;
+    }
+    renderDriversGrid();
+    document.getElementById('driversSearch').addEventListener('input', (e) =>
+      renderDriversGrid(e.target.value, document.getElementById('driversStatusFilter').value));
+    document.getElementById('driversStatusFilter').addEventListener('change', (e) =>
+      renderDriversGrid(document.getElementById('driversSearch').value, e.target.value));
 
     document.getElementById('hubsGrid').innerHTML = D.HUBS.map(h => `
       <div class="card card-pad hoverable" data-hub-id="${h.id}">
@@ -464,27 +505,33 @@
     document.querySelectorAll('#hubsGrid [data-hub-id]').forEach(card =>
       card.addEventListener('click', () => window.RP_openHubModal(card.dataset.hubId)));
 
-    document.getElementById('historyBody').innerHTML = [
-      ['Jul 20, 2026','19s',182,208,166,'42 mi','95%'],
-      ['Jul 19, 2026','21s',179,201,163,'38 mi','94%'],
-      ['Jul 18, 2026','17s',188,214,171,'43 mi','96%'],
-      ['Jul 17, 2026','23s',175,197,159,'38 mi','93%'],
-      ['Jul 16, 2026','18s',183,205,164,'41 mi','95%'],
-    ].map(r => `<tr><td>${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td>${r[3]} mi</td><td>${r[4]} mi</td><td style="color:var(--emerald);font-weight:700">${r[5]}</td><td>${r[6]}</td></tr>`).join('');
-
-    // full customer map (separate view)
-    const dailyMap = L.map('dailyMap').setView([D.CENTER.lat, D.CENTER.lng], 11);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '&copy; OpenStreetMap contributors' }).addTo(dailyMap);
-    D.ROUTES.forEach(r => {
-      r.stops.forEach(s => {
-        L.circleMarker([s.lat, s.lng], { radius: 5, color: r.driver.color, fillColor: r.driver.color, fillOpacity: 0.85, weight: 1.5 })
-          .bindPopup(`<b>${s.customer}</b><br>${s.address}<br>${s.phone}<br>ETA ${s.deliveryTime}`)
-          .addTo(dailyMap);
-      });
-    });
-    D.HUBS.forEach(h => {
-      L.circleMarker([h.lat, h.lng], { radius: 9, color: '#0A2647', weight: 2, fillColor: '#fff', fillOpacity: 1 }).bindPopup(`<b>${h.name}</b>`).addTo(dailyMap);
-    });
+    const historyRuns = [
+      { date: 'Jul 20, 2026', runtime: '19s', bookings: 182, before: 208, after: 166, saved: 42, score: 95 },
+      { date: 'Jul 19, 2026', runtime: '21s', bookings: 179, before: 201, after: 163, saved: 38, score: 94 },
+      { date: 'Jul 18, 2026', runtime: '17s', bookings: 188, before: 214, after: 171, saved: 43, score: 96 },
+      { date: 'Jul 17, 2026', runtime: '23s', bookings: 175, before: 197, after: 159, saved: 38, score: 93 },
+      { date: 'Jul 16, 2026', runtime: '18s', bookings: 183, before: 205, after: 164, saved: 41, score: 95 },
+    ];
+    document.getElementById('historyBody').innerHTML = historyRuns.map((r, i) => `
+      <tr class="row-clickable" data-history-i="${i}">
+        <td>${r.date}</td><td>${r.runtime}</td><td>${r.bookings}</td><td>${r.before} mi</td><td>${r.after} mi</td>
+        <td style="color:var(--emerald);font-weight:700">${r.saved} mi</td><td>${r.score}%</td>
+      </tr>`).join('');
+    document.querySelectorAll('#historyBody tr[data-history-i]').forEach(tr => tr.addEventListener('click', () => {
+      const r = historyRuns[+tr.dataset.historyI];
+      window.RP_openDetailModal(`Optimization Run \u2014 ${r.date}`, `
+        <div class="grid grid-3">
+          <div class="card card-pad"><div class="stat-label">Runtime</div><div class="stat-value" style="font-size:22px">${r.runtime}</div></div>
+          <div class="card card-pad"><div class="stat-label">Bookings</div><div class="stat-value" style="font-size:22px">${r.bookings}</div></div>
+          <div class="card card-pad"><div class="stat-label">Score</div><div class="stat-value" style="font-size:22px">${r.score}%</div></div>
+        </div>
+        <div class="compare-bars" style="margin-top:20px">
+          <div class="compare-bar-col"><div class="val">${r.before} mi</div><div class="compare-bar before" style="height:${Math.round(r.before/2.3)}%"></div><div class="lbl">Before Optimization</div></div>
+          <div class="compare-bar-col"><div class="val">${r.after} mi</div><div class="compare-bar after" style="height:${Math.round(r.after/2.3)}%"></div><div class="lbl">After Optimization</div></div>
+        </div>
+        <p style="margin-top:16px;color:var(--muted);font-size:13px">This run clustered ${r.bookings} bookings across 3 hubs, cutting fleet mileage by <b style="color:var(--emphasis)">${r.saved} miles</b> (${r.score}% optimization score) in ${r.runtime}.</p>
+      `);
+    }));
   });
 </script>
 </body>
