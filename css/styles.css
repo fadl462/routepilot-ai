@@ -246,15 +246,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   flex-direction: column;
 }
 .topbar {
-  height: 68px; display: flex; align-items: center; justify-content: space-between;
+  height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 0 28px; background: var(--card); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 20;
 }
-.topbar .title-block h2 { font-size: 19px; }
+.topbar .title-block { flex: 1; min-width: 0; }
+.topbar .title-block h2 { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .topbar .title-block .date { font-size: 12.5px; color: var(--muted); font-family: var(--font-mono); }
 .topbar-actions { display: flex; align-items: center; gap: 14px; }
 .icon-btn {
   width: 36px; height: 36px; border-radius: 9px; border: 1px solid var(--border); background: var(--card);
-  display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--muted); flex-shrink: 0;
   transition: background .15s, color .15s, border-color .15s;
 }
 .icon-btn:hover { background: var(--navy-tint); color: var(--accent-text); border-color: var(--blue); }
@@ -618,14 +619,27 @@ body.theme-dark .ai-suggest-box b { color: #6EE7B7; }
 ::-webkit-scrollbar-track { background: transparent; }
 
 /* ---------- responsive ---------- */
+.hamburger-btn { display: none; }
+.sidebar-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 290; display: none; }
+.sidebar-backdrop.active { display: block; }
+
 @media (max-width: 980px) {
   .app-shell.active { grid-template-columns: 1fr; }
-  .sidebar { position: static; height: auto; flex-direction: row; overflow-x: auto; }
-  .nav-group { display: flex; gap: 4px; }
-  .nav-label { display: none; }
-  .sidebar-footer { display: none; }
+  .hamburger-btn { display: flex; }
+  .sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh; width: 278px; max-width: 82vw;
+    transform: translateX(-100%); transition: transform .25s ease; z-index: 300;
+    box-shadow: 8px 0 28px rgba(0,0,0,0.35);
+  }
+  .sidebar.mobile-open { transform: translateX(0); }
+  .topbar { padding: 0 14px; gap: 8px; }
+  .topbar .title-block h2 { font-size: 16px; }
+  .topbar .title-block .date { display: none; }
+  .topbar-actions .pill { display: none; }
+  .topbar-actions { gap: 8px; }
   .login-screen { grid-template-columns: 1fr; }
   .login-visual { display: none; }
   .route-map-modal-body { grid-template-columns: 1fr; }
   .grid-4, .grid-3, .grid-2 { grid-template-columns: 1fr; }
+  .view { padding: 16px 14px 40px; }
 }
