@@ -124,8 +124,28 @@
       </div>
       <div class="topbar-actions">
         <span class="pill pill-emerald"><span class="pill-dot"></span>All systems normal</span>
-        <button class="icon-btn" title="Notifications">🔔</button>
-        <button class="icon-btn" title="Help">?</button>
+        <button class="icon-btn" id="themeToggleBtn" title="Toggle dark mode">🌙</button>
+        <div class="dropdown-anchor">
+          <button class="icon-btn" id="notifBtn" title="Notifications">🔔</button>
+          <div class="dropdown-panel" id="notifPanel">
+            <div class="dp-title">Today</div>
+            <div class="dp-item"><span class="ic">⚠</span><div><b>Critical conflict — Brown</b><span class="sub">Predicted arrival 10:38, outside window. Review in Conflict Detector.</span></div></div>
+            <div class="dp-item"><span class="ic">⛟</span><div><b>Trailer T4 reported damaged</b><span class="sub">Hub B — out of service, reassignment suggested.</span></div></div>
+            <div class="dp-item"><span class="ic">✓</span><div><b>Optimization complete</b><span class="sub">186 bookings scheduled in 18 seconds.</span></div></div>
+            <div class="dp-item"><span class="ic">📵</span><div><b>Driver Mike unavailable</b><span class="sub">Marked sick — bookings redistributed automatically.</span></div></div>
+          </div>
+        </div>
+        <div class="dropdown-anchor">
+          <button class="icon-btn" id="helpBtn" title="Help">?</button>
+          <div class="dropdown-panel" id="helpPanel">
+            <div class="dp-title">Quick help</div>
+            <div class="dp-item"><span class="ic">✳</span><div><b>Optimize Routes</b><span class="sub">Daily Optimizer → confirm hub counts → click Optimize Routes.</span></div></div>
+            <div class="dp-item"><span class="ic">💬</span><div><b>AI Dispatcher</b><span class="sub">Type plain-language changes like "Driver Mike called in sick."</span></div></div>
+            <div class="dp-item"><span class="ic">{ }</span><div><b>Prompt Builder</b><span class="sub">Copy the reusable prompt to run this in ChatGPT directly.</span></div></div>
+            <div class="dp-title">Shortcuts</div>
+            <div class="dp-item"><span class="kbd">Click</span><div style="align-self:center"><span class="sub">any driver, hub, trailer, or booking row to see full detail</span></div></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -419,7 +439,7 @@
     const D = window.RP_DATA;
 
     document.getElementById('driversGrid').innerHTML = D.DRIVERS.map(d => `
-      <div class="card card-pad hoverable">
+      <div class="card card-pad hoverable" data-driver-id="${d.id}">
         <div style="display:flex;align-items:center;gap:12px">
           <span style="font-size:26px">${d.avatar}</span>
           <div>
@@ -429,9 +449,11 @@
           <span class="pill ${d.status === 'Active' ? 'pill-emerald' : 'pill-amber'}" style="margin-left:auto"><span class="pill-dot"></span>${d.status}</span>
         </div>
       </div>`).join('');
+    document.querySelectorAll('#driversGrid [data-driver-id]').forEach(card =>
+      card.addEventListener('click', () => window.RP_openDriverModal(card.dataset.driverId)));
 
     document.getElementById('hubsGrid').innerHTML = D.HUBS.map(h => `
-      <div class="card card-pad hoverable">
+      <div class="card card-pad hoverable" data-hub-id="${h.id}">
         <div style="display:flex;align-items:center;gap:10px"><span class="hub-dot" style="width:10px;height:10px;border-radius:50%;background:${h.color}"></span><b>${h.name}</b></div>
         <div class="hub-inputs" style="margin-top:14px">
           <div><label>Drivers</label><div style="font-family:var(--font-mono);font-weight:700;margin-top:4px">${h.drivers}</div></div>
@@ -439,6 +461,8 @@
           <div><label>Double</label><div style="font-family:var(--font-mono);font-weight:700;margin-top:4px">${h.double}</div></div>
         </div>
       </div>`).join('');
+    document.querySelectorAll('#hubsGrid [data-hub-id]').forEach(card =>
+      card.addEventListener('click', () => window.RP_openHubModal(card.dataset.hubId)));
 
     document.getElementById('historyBody').innerHTML = [
       ['Jul 20, 2026','19s',182,208,166,'42 mi','95%'],
