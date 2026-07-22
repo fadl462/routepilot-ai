@@ -9,7 +9,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<link rel="stylesheet" href="css/styles.css?v=9">
+<link rel="stylesheet" href="css/styles.css?v=10">
 </head>
 <body>
 
@@ -104,7 +104,8 @@
       <div class="nav-label">System</div>
       <div class="nav-group">
         <div class="nav-item" data-view="settings"><span class="ic">⚙</span> Settings</div>
-        <div class="nav-item" data-view="promptbuilder"><span class="ic">{ }</span> Prompt Builder</div>
+        <div class="nav-item" data-view="promptbuilder" style="display:none"><span class="ic">{ }</span> Prompt Builder</div>
+        <!-- ^ Prompt Builder hidden for public release. To bring back for a client, delete the style="display:none" above. -->
         <div class="nav-item" data-view="mobiledriver"><span class="ic">📱</span> Driver Mobile View</div>
         <div class="nav-item" data-view="customertimeline"><span class="ic">⏱</span> Customer Timeline</div>
       </div>
@@ -113,7 +114,7 @@
     <div class="sidebar-footer">
       <div class="avatar">🧭</div>
       <div class="who">Dispatch Team<div class="role">Lakeside Rentals</div></div>
-      <div style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,0.35)">build 9</div>
+      <div style="margin-left:auto;font-family:var(--font-mono);font-size:10px;color:rgba(255,255,255,0.35)">build 10</div>
     </div>
   </aside>
 
@@ -464,9 +465,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgenjs.bundle.js"></script>
-<script src="js/data.js?v=9"></script>
-<script src="js/export.js?v=9"></script>
-<script src="js/app.js?v=9"></script>
+<script src="js/data.js?v=10"></script>
+<script src="js/export.js?v=10"></script>
+<script src="js/app.js?v=10"></script>
 <script>
   // ---- fill in views that reuse data.js directly (drivers/hubs/history/daily map) ----
   document.addEventListener('DOMContentLoaded', () => {
